@@ -1,0 +1,213 @@
+---
+title: "Finanzas TP1"
+author: "Nelson Shilman"
+date: "8/31/2020"
+output: md_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(knitr)
+library(tidyverse)
+
+```
+
+# TP N°1 Finanzas
+
+## 1. Colegio Privado
+
+Un colegio privado que por año cobra diez cuotas mensuales de $20.000 c/u, acepta $180.000
+como prepago de todas las cuotas de un año al inicio de diciembre del año anterior al de
+cursado de clases. Normalmente las cuotas se pagarían a principio de mes desde marzo a
+diciembre del año de cursado. 
+
+#### a) ¿Cuál es el rendimiento efectivo anual implícito en este descuento? (Es decir, con qué tipo de interés efectivo anual, ambas cantidades serían iguales).
+
+Para resolver este problema, descontamos todos los flujos de fondos al período febrero a una tasa de descuento r con la formula de Annuity tal que al descontar 2 períodos adicionales para obtener el valor presente neto al mes de diciembre podamos igualar este monto al pago de $180.000 y así despejar r. Resolvemos por simulación
+
+
+
+```{r}
+for(r in seq(0.014, .015, .00001)){
+  print(paste0("r = ",r," NPV = ",((20000/r)*(1-(1/(1+r)^10)))/((1+r)^2)))
+}
+```
+
+obtenemos una tasa efectiva mensual de 0.01426 que ahora transformamos en TEA
+
+```{r}
+TEA <- ((1+.01426)^12 - 1)
+print(paste0("TEA = ", round(TEA,4)*100, "%"))
+```
+
+#### b) ¿Y si aceptasen $160.000 como prepago del total de las matrículas? 
+
+Replicamos nuevamente
+
+
+```{r}
+for(r in seq(0.030, .031, .00001)){
+  print(paste0("r = ",r," NPV = ",((20000/r)*(1-(1/(1+r)^10)))/((1+r)^2)))
+}
+```
+
+obtenemos una tasa efectiva mensual de 0.03072 que ahora transformamos en TEA
+
+```{r}
+TEA <- ((1+0.03072)^12 - 1)
+print(paste0("TEA = ", round(TEA,4)*100, "%"))
+```
+
+#### c) Si la tasa efectiva anual para un depósito a plazo fijo inferior a un año fuese 12% anual, ¿cuánto sería la cantidad de dinero de la que hay que disponer en diciembre del año anterior para hacer 10 plazos fijos que estén justo calzados con cada cuota a pagar? Si Ud. no tiene problemas de liquidez, ¿le conviene o no le conviene la oferta del colegio?
+
+
+
+Primero transformamos la TEA en TEM y después descontamos con la fórmula de Annuity
+
+TEA 12%
+```{r}
+TEM <- ((1+.12)^(1/12))-1
+print(paste0("TEM = ",round(TEM,4)*100, "%"))
+```
+
+Ahora aplicamos formula de anuity sobre los 10 periodos y descontamos 2 periodos adicionales para evaluar el NPV
+
+```{r}
+((20000/.0095)*(1-(1/(1+.0095)^10)))/((1+.0095)^2)
+```
+
+
+El NPV es de $186377.2 que es superior a los 180000 ofrecidos por el colegio, atento a que es un pago, resulta conveniente tomar la oferta del colegio
+
+
+
+
+
+## 2. Start up.
+Al cabo de 10 años de experiencia corporativa Cecilia decide emprender. Para llevar a cabo su
+proyecto, necesita una inversión de USD 100 mil. De acuerdo a los pronósticos de Cecilia, los
+cashflows futuros esperados son de USD 50 mil en el año 1 y USD 100 mil en el año 2. Estima
+que, para este nivel de riesgo, su costo de oportunidad es del 15%.
+Si bien su idea original era hacer una primera ronda de inversión entre su familia y amigos,
+considera que esto le llevaría más tiempo del que dispone y decide ir a su banco y pedir un
+préstamo. Las condiciones del préstamo son las siguientes:
+  Capital: USD 100 mil
+  Plazo: 2 años.
+  Tasa: x% anual capitalizable
+  Intereses pagaderos junto con el capital al vencimiento del préstamo (final del año 2)
+
+
+
+#### a) Determine los flujos de fondos del banco y de la emprendedora como función de la tasa de interés del banco. Considere un rango de tasas del 12% al 24%.  
+
+simulamos para tasas entre 12% y 24% los flujos del banco y de la  inversora
+
+```{r}
+rendimientos <- data.frame()
+
+
+for(i in seq(.12,.24,.01)){
+  
+  iter_df = data.frame(
+    tasa = paste0(i*100,"%"),
+    banco_c0 = -100000,
+    banco_c1 = 0,
+    banco_c2 = 100000*((1+i)^2),
+    emp_c0 = 0,
+    emp_c1 = 50000,
+    emp_c2 = 100000 - 100000*((1+i)^2)
+  )
+  
+  rendimientos = rbind(rendimientos, iter_df)
+  
+}
+
+rendimientos %>% kable()
+
+
+```
+
+#### b) ¿Cuál es el VAN del proyecto? ¿Cuál es el VAN de Cecilia, como función de la tasa de interés bancaria? ¿A partir de qué costo de financiamiento deja de ser atractivo este negocio para Cecilia?
+
+
+Partiendo de que el costo de oportunidad es del 15%, determinamos el NPV(VAN) del proyecto
+
+```{r}
+npv <- -100000 + 50000/1.15 + 100000/(1.15^2)
+paste0("El VAN del proyecto es de: $", round(npv,2))
+
+```
+
+Para la segunda parte de la pregunta, especificamos el VAN del emprendedor e igualamos a 0 (simulaction)
+
+
+```{r}
+van_emprendedor <- data.frame()
+
+for(r in seq(.12,.24,.01)){
+  
+  iter_df <- data.frame(
+    tasa_bancaria = paste0(100*r,"%"),
+    npv = 0 + 50000/1.15 + 100000/(1.15^2) - 100000*((1+r)^2)/(1.15^2) 
+  )
+  
+  van_emprendedor = rbind(van_emprendedor, iter_df)
+
+}
+
+van_emprendedor %>% kable()
+
+```
+
+para las tasas indicadas al comienzo del ejercicio siempre conviene realizar el proyecto
+
+```{r}
+van_emprendedor <- data.frame()
+
+for(r in seq(.25,.26,.0001)){
+  
+  iter_df <- data.frame(
+    tasa_bancaria = paste0(100*r,"%"),
+    npv = 0 + 50000/1.15 + 100000/(1.15^2) - 100000*((1+r)^2)/(1.15^2) 
+  )
+  
+  van_emprendedor = rbind(van_emprendedor, iter_df)
+
+}
+
+van_emprendedor %>% kable()
+
+```
+
+
+
+
+
+observamos que para una tasa bancaria del 25.5% Cecilia se encontraría indiferente.
+
+
+
+## 3. Fondo de inversión
+Un fondo de inversión evalúa comprar el Correo Argentino. De acuerdo a las estimaciones de
+demanda, los analistas del fondo calculan que en el primer año venderán 4.000.000 de envíos
+por mes y en el segundo año, logrando una fuerte expansión en el área de servicio, podrá
+vender 6.000.000 envíos mensuales. Además, el fondo estima vender la empresa al final del
+segundo año a su precio de venta inicial, más una valorización real del 15% (esto es, luego de
+tomar en cuenta la inflación acumulada hasta el momento de la venta). El precio promedio del
+envío hoy es de 60 pesos y la tasa de inflación para los años que vienen se estima en 2,5%
+mensual. El fondo anticipa actualizar los precios de los envíos mensualmente de acuerdo a la
+inflación realizada. Los costos totales son el 75% de los ingresos operativos. Como inversión
+alternativa de riesgo similar, el fondo podría invertir el dinero en bonos riesgosos, con un
+rendimiento del 50% anual, con capitalización anual.
+
+
+#### a) ¿Cuáles son los cashflows asociados a este proyecto de inversión?
+
+
+
+
+
+
